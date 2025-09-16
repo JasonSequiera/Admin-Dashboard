@@ -14,7 +14,7 @@ const Login = () => {
   // Hardcoded credentials
   const VALID_CREDENTIALS = {
     username: "admin",
-    password: "admin123"
+    password: "ahd5#DFw34H#fgug"
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -88,9 +88,9 @@ const Login = () => {
                 Sign In
               </Button>
               
-              <div className="text-center text-sm text-muted-foreground">
+              {/* <div className="text-center text-sm text-muted-foreground">
                 Demo credentials: admin / admin123
-              </div>
+              </div> */}
             </div>
           </form>
         </CardContent>
