@@ -16,15 +16,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Pencil } from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [queries, setQueries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [remarks, setRemarks] = useState({});
-  const [resolvingId, setResolvingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
 
-  // Fetch queries from Supabase
+  // Fetch queries
   useEffect(() => {
     const fetchQueries = async () => {
       setLoading(true);
@@ -33,7 +34,6 @@ const Dashboard = () => {
           .from("contact_info")
           .select("*")
           .order("created_at", { ascending: false });
-
         if (error) throw error;
         setQueries(data || []);
       } catch (err) {
@@ -42,45 +42,40 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-
     fetchQueries();
   }, []);
 
-  // Mark a query as resolved
-  const markAsResolved = async (id) => {
+  // Update remarks and mark as resolved
+  const updateRemarks = async (id) => {
     const remarkText = remarks[id] || "";
-
     try {
       const { error } = await supabase
         .from("contact_info")
         .update({
-          is_resolved: true,
           admin_remarks: remarkText,
+          is_resolved: true,
           resolved_at: new Date(),
         })
         .eq("id", id);
-
       if (error) throw error;
 
-      // Update UI locally
       setQueries((prev) =>
         prev.map((q) =>
           q.id === id
-            ? { ...q, is_resolved: true, admin_remarks: remarkText, resolved_at: new Date() }
+            ? { ...q, admin_remarks: remarkText, is_resolved: true, resolved_at: new Date() }
             : q
         )
       );
-      setResolvingId(null);
+      setEditingId(null);
     } catch (err) {
-      console.error("Error updating query:", err.message);
+      console.error("Error updating remark:", err.message);
     }
   };
 
-  const handleLogout = () => {
-    navigate("/");
-  };
+  const handleLogout = () => navigate("/");
+  const goChangePassword = () => navigate("/change-password");
+  const goForgotPassword = () => navigate("/forgot-password");
 
-  // Calculate response rate
   const totalQueries = queries.length;
   const resolvedCount = queries.filter((q) => q.is_resolved).length;
   const responseRate = totalQueries > 0 ? ((resolvedCount / totalQueries) * 100).toFixed(0) : 0;
@@ -92,19 +87,18 @@ const Dashboard = () => {
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <div className="w-10 h-10 bg-gradient-to-br from-neon-purple to-neon-blue rounded-lg flex items-center justify-center glow-effect">
-              <svg
-                className="w-5 h-5 text-background"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-5 h-5 text-background" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
               </svg>
             </div>
             <h1 className="text-2xl font-bold gradient-text">Admin Dashboard</h1>
           </div>
-          <Button variant="neon-outline" onClick={handleLogout}>
-            Sign Out
-          </Button>
+
+          <div className="flex space-x-2">
+            <Button size="sm" variant="outline" onClick={goChangePassword}>Change Password</Button>
+            <Button size="sm" variant="outline" onClick={goForgotPassword}>Forgot Password</Button>
+            <Button variant="neon-outline" onClick={handleLogout}>Sign Out</Button>
+          </div>
         </div>
       </header>
 
@@ -184,68 +178,55 @@ const Dashboard = () => {
                   </TableHeader>
                   <TableBody>
                     {queries.map((query, index) => (
-                      <TableRow
-                        key={query.id}
-                        className="border-border hover:bg-muted/30 transition-colors"
-                      >
-                        <TableCell>{index + 1}</TableCell>
-                        <TableCell>{query.name}</TableCell>
-                        <TableCell>{query.email}</TableCell>
-                        <TableCell>{query.subject || ""}</TableCell>
-                        <TableCell
-                          className="max-w-xs truncate text-muted-foreground"
-                          title={query.message}
-                        >
+                      <TableRow key={query.id} className="border-border hover:bg-muted/30 transition-colors">
+                        <TableCell className="cursor-default">{index + 1}</TableCell>
+                        <TableCell className="cursor-default">{query.name}</TableCell>
+                        <TableCell className="cursor-default">{query.email}</TableCell>
+                        <TableCell className="cursor-default">{query.subject || ""}</TableCell>
+                        <TableCell className="max-w-xs truncate text-muted-foreground cursor-default" title={query.message}>
                           {query.message}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="cursor-default">
                           {query.is_resolved ? (
                             <span className="text-green-500 font-medium">Resolved</span>
                           ) : (
                             <span className="text-yellow-500 font-medium">Pending</span>
                           )}
                         </TableCell>
-                        <TableCell>{query.admin_remarks || ""}</TableCell>
-                        <TableCell>
-                        {query.is_resolved ? (
-                          query.admin_remarks || "" // show blank if no remarks
-                        ) : resolvingId === query.id ? (
-                          <div className="flex space-x-2">
-                            <input
-                              type="text"
-                              placeholder="Remarks"
-                              className="px-2 py-1 border rounded text-sm text-black" // added text-black
-                              value={remarks[query.id] || ""}
-                              onChange={(e) =>
-                                setRemarks((prev) => ({
-                                  ...prev,
-                                  [query.id]: e.target.value,
-                                }))
-                              }
-                            />
-                            <Button
-                              size="sm"
-                              onClick={() => markAsResolved(query.id)}
-                            >
-                              Save
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setResolvingId(null)}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => setResolvingId(query.id)}
-                          >
-                            Resolve
-                          </Button>
-                        )}
-                      </TableCell>
+                        <TableCell className="cursor-default">
+                          {editingId === query.id ? (
+                            <div className="flex space-x-2">
+                              <input
+                                type="text"
+                                className="px-2 py-1 border rounded text-sm text-black"
+                                value={remarks[query.id] || ""}
+                                onChange={(e) =>
+                                  setRemarks(prev => ({ ...prev, [query.id]: e.target.value }))
+                                }
+                              />
+                              <Button size="sm" onClick={() => updateRemarks(query.id)}>Save</Button>
+                              <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+                            </div>
+                          ) : (
+                            <span>{query.admin_remarks || ""}</span>
+                          )}
+                        </TableCell>
+
+                        {/* Actions */}
+                        <TableCell className="flex items-center space-x-2">
+                          {!query.is_resolved && (
+                            <>
+                              <Button size="sm" onClick={() => setEditingId(query.id)}>Resolve</Button>
+                              {query.admin_remarks && (
+                                <Pencil
+                                  className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-neon-blue"
+                                  onClick={() => setEditingId(query.id)}
+                                />
+                              )}
+                            </>
+                          )}
+                          {query.is_resolved && <span className="cursor-default">Resolved</span>}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
