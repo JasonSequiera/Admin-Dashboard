@@ -109,13 +109,13 @@ const Dashboard = () => {
           </div>
 
           <div className="flex space-x-2">
-            <Button
+            {/* <Button
               size="sm"
               variant="outline"
               onClick={goChangePassword}
             >
               Change Password
-            </Button>
+            </Button> */}
             <Button
               size="sm"
               variant="outline"

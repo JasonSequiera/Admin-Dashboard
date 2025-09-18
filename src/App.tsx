@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ChangePassword from "./pages/ChangePassword.jsx";
+import VerifyOtp from "./pages/VerifyOtp";   // 👈 added this
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,7 +24,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/change-password" element={<ChangePassword />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          {/* Catch-all route */}
+          <Route path="/verify-otp" element={<VerifyOtp />} /> {/* 👈 new route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </HashRouter>

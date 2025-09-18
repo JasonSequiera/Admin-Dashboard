@@ -1,45 +1,86 @@
+// src/pages/ForgotPassword.jsx
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { supabase } from "../../supabaseClient";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ADMIN_CREDENTIALS } from "@/config/credentials";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 const ForgotPassword = () => {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleResetPassword = () => {
-    if (email !== ADMIN_CREDENTIALS.username) {
-      setMessage("Email not recognized!");
+  const handleForgot = async (e) => {
+    e.preventDefault();
+
+    // Check if email exists in admins
+    const { data, error } = await supabase
+      .from("admins")
+      .select("id, email")
+      .ilike("email", email.trim())
+      .maybeSingle();
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Database error.",
+        variant: "destructive",
+      });
       return;
     }
 
-    // In production, send OTP email via Supabase
-    setMessage("OTP sent to your email (demo only).");
+    if (!data) {
+      toast({
+        title: "Invalid Email",
+        description: "No admin account with this email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Save OTP in a table (password_resets)
+    await supabase.from("password_resets").insert({
+      email: data.email,
+      otp,
+    });
+
+    toast({
+      title: "OTP Sent",
+      description: `OTP sent to ${data.email}. (For dev: ${otp})`,
+    });
+
+    // Redirect to Verify OTP page with email param
+    navigate(`/verify-otp?email=${data.email}`);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-card">
-      <Card className="w-full max-w-md neon-border bg-card/80 backdrop-blur-sm glow-effect">
+    <div className="min-h-screen flex items-center justify-center">
+      <Card className="w-full max-w-md mx-4">
         <CardHeader>
-          <CardTitle className="text-xl gradient-text">Forgot Password</CardTitle>
+          <h1 className="text-2xl font-bold text-center">Forgot Password</h1>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3 py-2 border rounded text-black"
-          />
-          {message && <p className="text-sm text-red-500">{message}</p>}
-          <Button className="w-full" onClick={handleResetPassword}>
-            Send OTP
-          </Button>
-          <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
-            Back to Login
-          </Button>
+        <CardContent>
+          <form onSubmit={handleForgot} className="space-y-4">
+            <div>
+              <Label htmlFor="email">Admin Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Send OTP
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
